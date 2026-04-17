@@ -1,0 +1,8 @@
+.env
+__pycache__/
+*.pyc
+db/sami.db
+db/sami.db-shm
+db/sami.db-wal
+venv/
+.venv/
