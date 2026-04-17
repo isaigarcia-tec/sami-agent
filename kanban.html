@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kanban — Proyectos Tec de Monterrey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── Reset & Variables ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --tec-blue:    #0039a6;
+  --tec-bright:  #00a7f7;
+  --tec-dark:    #002470;
+  --accent:      #FF9901;
+  --accent-warm: #FF6B2B;
+  --bg-base:     #090912;
+  --bg-surface:  #0D0D1A;
+  --text-primary:#EAEEF8;
+  --text-muted:  #6B7A99;
+  --glass-bg:    rgba(255,255,255,0.03);
+  --glass-border:rgba(255,255,255,0.08);
+  --green: #4ade80; --amber: #fbbf24; --red: #f87171;
+}
+
+html { font-family: 'Manrope', system-ui, sans-serif; background: var(--bg-base); color: var(--text-primary); -webkit-font-smoothing: antialiased; }
+
+body {
+  min-height: 100vh;
+  background-image: radial-gradient(circle, rgba(0,57,166,0.09) 1px, transparent 1px);
+  background-size: 28px 28px;
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(0,57,166,0.35); border-radius: 2px; }
+::selection { background: rgba(0,57,166,0.4); color: #fff; }
+
+/* ── Top nav ───────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 16px;
+  padding: 0 32px;
+  height: 60px;
+  background: rgba(9,9,18,0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.topbar-logo {
+  font-size: 15px; font-weight: 800; letter-spacing: -0.4px;
+  background: linear-gradient(135deg, #fff 0%, var(--tec-bright) 70%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+  white-space: nowrap;
+}
+
+.topbar-sep { width: 1px; height: 20px; background: var(--glass-border); }
+
+.topbar-sub { font-size: 12px; color: var(--text-muted); font-weight: 500; }
+
+.topbar-spacer { flex: 1; }
+
+.session-badge {
+  padding: 4px 12px; border-radius: 20px;
+  background: rgba(0,57,166,0.15); border: 1px solid rgba(0,57,166,0.3);
+  font-size: 11.5px; font-weight: 700; color: var(--tec-bright);
+}
+
+.last-updated {
+  font-size: 11px; color: var(--text-muted); font-weight: 500;
+}
+
+/* ── Nav tabs ──────────────────────────────────────────────── */
+.nav-tabs {
+  display: flex; gap: 2px;
+  padding: 0 32px;
+  background: rgba(9,9,18,0.6);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--glass-border);
+}
+
+.nav-tab {
+  padding: 12px 18px;
+  font-size: 12.5px; font-weight: 600;
+  color: var(--text-muted);
+  cursor: pointer; border: none; background: none;
+  font-family: 'Manrope', sans-serif;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.nav-tab:hover { color: var(--text-primary); }
+.nav-tab.active { color: var(--tec-bright); border-bottom-color: var(--tec-bright); }
+
+/* ── Main content ──────────────────────────────────────────── */
+.content { padding: 28px 32px 40px; }
+
+/* ── Summary row ───────────────────────────────────────────── */
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.kpi-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  transition: all 0.25s;
+  animation: fadeUp 0.4s ease both;
+}
+.kpi-card:hover {
+  background: rgba(0,57,166,0.07);
+  border-color: rgba(0,167,247,0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,57,166,0.18);
+}
+
+.kpi-label { font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 6px; }
+.kpi-value { font-size: 26px; font-weight: 800; line-height: 1; letter-spacing: -1px; }
+.kpi-value.blue { background: linear-gradient(135deg, var(--tec-blue), var(--tec-bright)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.kpi-value.green { color: var(--green); }
+.kpi-value.amber { color: var(--amber); }
+.kpi-value.red   { color: var(--red); }
+.kpi-sub { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:none; } }
+
+/* ── Projects row ──────────────────────────────────────────── */
+.projects-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+  margin-bottom: 32px;
+}
+
+.project-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 18px 20px;
+  transition: all 0.25s;
+  animation: fadeUp 0.4s ease both;
+  position: relative;
+  overflow: hidden;
+}
+
+.project-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 3px; height: 100%;
+  background: var(--project-color, var(--tec-blue));
+  border-radius: 16px 0 0 16px;
+}
+
+.project-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  border-color: rgba(255,255,255,0.12);
+}
+
+.proj-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.proj-name { font-size: 15px; font-weight: 800; }
+.proj-status { font-size: 10.5px; font-weight: 600; padding: 3px 9px; border-radius: 20px; }
+.proj-status.activo    { background: rgba(74,222,128,0.1); color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+.proj-status.desarrollo{ background: rgba(0,167,247,0.1); color: var(--tec-bright); border: 1px solid rgba(0,167,247,0.2); }
+.proj-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 14px; }
+
+.proj-stack { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.stack-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 5px; background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: var(--text-muted); font-weight: 500; }
+
+.progress-row { display: flex; align-items: center; gap: 10px; }
+.progress-label { font-size: 11px; color: var(--text-muted); font-weight: 600; white-space: nowrap; }
+.progress-bar { flex: 1; height: 5px; background: rgba(255,255,255,0.06); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.progress-pct { font-size: 12px; font-weight: 700; color: var(--text-primary); min-width: 30px; text-align: right; }
+
+.proj-port { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+.proj-port a { color: var(--tec-bright); text-decoration: none; font-weight: 600; }
+.proj-port a:hover { text-decoration: underline; }
+
+/* ── Kanban board ──────────────────────────────────────────── */
+.board-section-title {
+  font-size: 13px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin-bottom: 16px;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+  min-height: 400px;
+}
+
+@media (max-width: 1100px) { .board { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 720px)  { .board { grid-template-columns: repeat(2, 1fr); } }
+
+.column {
+  background: rgba(255,255,255,0.018);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  animation: fadeUp 0.4s ease both;
+}
+
+.col-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 4px;
+}
+.col-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; }
+.col-count {
+  font-size: 11px; font-weight: 700;
+  min-width: 20px; height: 20px;
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.07);
+  color: var(--text-muted);
+}
+
+/* Column accent colors */
+.column[data-col="Backlog"]    .col-title { color: var(--text-muted); }
+.column[data-col="En curso"]   .col-title { color: var(--tec-bright); }
+.column[data-col="En curso"]   { border-top: 2px solid rgba(0,167,247,0.35); }
+.column[data-col="Revisión"]   .col-title { color: var(--amber); }
+.column[data-col="Revisión"]   { border-top: 2px solid rgba(251,191,36,0.35); }
+.column[data-col="Bloqueado"]  .col-title { color: var(--red); }
+.column[data-col="Bloqueado"]  { border-top: 2px solid rgba(248,113,113,0.35); }
+.column[data-col="Completado"] .col-title { color: var(--green); }
+.column[data-col="Completado"] { border-top: 2px solid rgba(74,222,128,0.35); }
+
+/* ── Task card ─────────────────────────────────────────────── */
+.task-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+  padding: 12px 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  animation: fadeUp 0.35s ease both;
+}
+
+.task-card:hover {
+  background: rgba(0,57,166,0.08);
+  border-color: rgba(0,167,247,0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0,57,166,0.2);
+}
+
+.task-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 6px; margin-bottom: 7px; }
+.task-title { font-size: 12.5px; font-weight: 600; line-height: 1.4; color: var(--text-primary); flex: 1; }
+.task-priority { font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 4px; flex-shrink: 0; }
+.task-priority.Alta  { background: rgba(248,113,113,0.15); color: var(--red);   border: 1px solid rgba(248,113,113,0.25); }
+.task-priority.Media { background: rgba(251,191,36,0.12);  color: var(--amber); border: 1px solid rgba(251,191,36,0.25); }
+.task-priority.Baja  { background: rgba(74,222,128,0.1);   color: var(--green); border: 1px solid rgba(74,222,128,0.2); }
+
+.task-desc { font-size: 11px; color: var(--text-muted); line-height: 1.45; margin-bottom: 8px; }
+
+.task-bottom { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px; }
+.task-project { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 5px; }
+.task-assignee { font-size: 10.5px; color: var(--text-muted); font-weight: 500; }
+
+.task-blockers {
+  margin-top: 6px;
+  font-size: 10.5px;
+  color: var(--red);
+  background: rgba(248,113,113,0.07);
+  border-radius: 6px;
+  padding: 4px 7px;
+}
+
+/* ── Sessions log ──────────────────────────────────────────── */
+.sessions-section { margin-top: 36px; }
+
+.session-item {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 10px;
+  animation: fadeUp 0.4s ease both;
+  transition: all 0.2s;
+}
+.session-item:hover {
+  background: rgba(0,57,166,0.06);
+  border-color: rgba(0,57,166,0.25);
+}
+
+.session-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.session-num {
+  min-width: 36px; height: 36px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--tec-blue), var(--tec-bright));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 800; color: white;
+  box-shadow: 0 2px 12px rgba(0,57,166,0.4);
+}
+.session-title { font-size: 14px; font-weight: 700; flex: 1; }
+.session-date { font-size: 11px; color: var(--text-muted); }
+
+.session-sabios { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+.sabio-tag { font-size: 10.5px; padding: 2px 8px; border-radius: 5px; background: rgba(0,57,166,0.15); border: 1px solid rgba(0,57,166,0.25); color: var(--tec-bright); font-weight: 600; }
+
+.session-body { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 600px) { .session-body { grid-template-columns: 1fr; } }
+
+.session-block-title { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--text-muted); margin-bottom: 6px; }
+.session-list { list-style: none; display: flex; flex-direction: column; gap: 4px; }
+.session-list li { font-size: 12px; color: var(--text-primary); padding-left: 14px; position: relative; line-height: 1.45; }
+.session-list li::before { content: '·'; position: absolute; left: 0; color: var(--tec-bright); font-weight: 700; }
+
+/* ── Loading ────────────────────────────────────────────────── */
+#loading {
+  display: flex; align-items: center; justify-content: center;
+  height: 60vh; flex-direction: column; gap: 16px;
+}
+.loader-ring {
+  width: 40px; height: 40px;
+  border: 2.5px solid rgba(0,57,166,0.2);
+  border-top-color: var(--tec-bright);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loader-text { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+
+/* Tab panels */
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-logo">Tec de Monterrey</div>
+  <div class="topbar-sep"></div>
+  <div class="topbar-sub">Tablero de Proyectos</div>
+  <div class="topbar-spacer"></div>
+  <div class="last-updated" id="lastUpdated">Cargando…</div>
+  <div class="session-badge" id="sessionBadge">Sesión —</div>
+</div>
+
+<!-- Nav tabs -->
+<div class="nav-tabs">
+  <button class="nav-tab active" onclick="switchTab('kanban')">Kanban</button>
+  <button class="nav-tab" onclick="switchTab('proyectos')">Proyectos</button>
+  <button class="nav-tab" onclick="switchTab('sesiones')">Historial de Sesiones</button>
+</div>
+
+<!-- Content -->
+<div class="content">
+  <div id="loading">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Cargando tablero…</div>
+  </div>
+
+  <div id="main" style="display:none">
+
+    <!-- Summary KPIs -->
+    <div class="summary-row" id="kpiRow"></div>
+
+    <!-- Tab: Kanban -->
+    <div class="tab-panel active" id="tab-kanban">
+      <div class="board-section-title">Tablero de Tareas</div>
+      <div class="board" id="board"></div>
+    </div>
+
+    <!-- Tab: Proyectos -->
+    <div class="tab-panel" id="tab-proyectos">
+      <div class="board-section-title">Proyectos Activos</div>
+      <div class="projects-row" id="projectsRow"></div>
+    </div>
+
+    <!-- Tab: Sesiones -->
+    <div class="tab-panel" id="tab-sesiones">
+      <div class="board-section-title">Historial de Sesiones</div>
+      <div id="sessionsContainer"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const SB_URL = 'https://ploektpuofikwdjgkfxc.supabase.co';
+const SB_KEY = 'sb_publishable_uYY-f6PyHV7TPaD_88p5oQ_nikSCOFZ';
+const COLUMNS = ['Backlog','En curso','Revisión','Bloqueado','Completado'];
+let DATA = null;
+const PROJECT_COLORS = {};
+
+// ── Supabase REST helper ─────────────────────────────────────
+async function sb(table, params = '') {
+  const res = await fetch(`${SB_URL}/rest/v1/${table}${params}`, {
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  if (!res.ok) throw new Error(`${table}: HTTP ${res.status}`);
+  return res.json();
+}
+
+// ── Fetch data ──────────────────────────────────────────────
+async function load() {
+  try {
+    const [proyectos, tareas, act_tarea, bloqueadores, sesiones, actividades] = await Promise.all([
+      sb('proyectos',         '?order=codigo'),
+      sb('tareas',            '?order=codigo'),
+      sb('actividades_tarea', '?order=creado_en'),
+      sb('bloqueadores',      '?resuelto=eq.false'),
+      sb('sesiones',          '?order=numero.desc&limit=10'),
+      sb('actividades',       '?order=creado_en'),
+    ]);
+
+    DATA = {
+      meta: {
+        current_session: sesiones[0]?.numero || 9,
+        last_updated:    sesiones[0]?.fecha_sesion || '2026-04-13'
+      },
+      columns: COLUMNS,
+      projects: proyectos.map(p => ({
+        id:          p.codigo,
+        name:        p.nombre,
+        description: p.descripcion,
+        status:      p.estado,
+        tech_stack:  p.tecnologias || [],
+        port:        p.puerto,
+        progress:    p.avance,
+        color:       p.color || '#0039a6'
+      })),
+      tasks: tareas.map(t => {
+        const done    = act_tarea.filter(a => a.tarea_id === t.id && a.tipo === 'hecho').map(a => a.descripcion);
+        const pending = act_tarea.filter(a => a.tarea_id === t.id && a.tipo === 'pendiente').map(a => a.descripcion);
+        const blks    = bloqueadores.filter(b => b.tarea_id === t.id).map(b => b.descripcion);
+        return {
+          id:                 t.codigo,
+          project_id:         proyectos.find(p => p.id === t.proyecto_id)?.codigo,
+          title:              t.titulo,
+          description:        t.descripcion,
+          column:             t.columna,
+          priority:           t.prioridad,
+          assignee:           t.responsable,
+          session_created:    t.sesion_creada,
+          session_updated:    t.sesion_actualizada,
+          activities_done:    done,
+          activities_pending: pending,
+          blockers:           blks,
+          tags:               t.etiquetas || []
+        };
+      }),
+      sessions: sesiones.map(s => ({
+        number: s.numero,
+        title:  s.titulo,
+        date:   s.fecha_sesion,
+        sabios: s.sabios || [],
+        activities_done: actividades.filter(a => a.sesion_id === s.id && a.tipo === 'hecho').map(a => a.descripcion),
+        decisions:       actividades.filter(a => a.sesion_id === s.id && a.tipo === 'decision').map(a => a.descripcion)
+      }))
+    };
+
+    render();
+  } catch (e) {
+    document.getElementById('loading').innerHTML =
+      `<div style="color:#f87171;font-size:14px;text-align:center">
+        Error Supabase: ${e.message}
+      </div>`;
+  }
+}
+
+// ── Render ──────────────────────────────────────────────────
+function render() {
+  // Map project colors
+  DATA.projects.forEach(p => { PROJECT_COLORS[p.id] = p.color; });
+
+  // Meta
+  document.getElementById('sessionBadge').textContent = 'Sesión #' + DATA.meta.current_session;
+  document.getElementById('lastUpdated').textContent = 'Actualizado: ' + DATA.meta.last_updated;
+
+  renderKPIs();
+  renderBoard();
+  renderProjects();
+  renderSessions();
+
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+}
+
+// ── KPIs ────────────────────────────────────────────────────
+function renderKPIs() {
+  const tasks = DATA.tasks;
+  const total = tasks.length;
+  const enCurso = tasks.filter(t => t.column === 'En curso').length;
+  const bloqueados = tasks.filter(t => t.column === 'Bloqueado').length;
+  const completados = tasks.filter(t => t.column === 'Completado').length;
+  const revision = tasks.filter(t => t.column === 'Revisión').length;
+  const altaPriority = tasks.filter(t => t.priority === 'Alta' && t.column !== 'Completado').length;
+
+  const kpis = [
+    { label: 'Total tareas', value: total, cls: 'blue', sub: DATA.projects.length + ' proyectos' },
+    { label: 'En curso', value: enCurso, cls: 'blue', sub: 'activas ahora' },
+    { label: 'En revisión', value: revision, cls: 'amber', sub: 'esperan validación' },
+    { label: 'Bloqueadas', value: bloqueados, cls: 'red', sub: 'requieren acción' },
+    { label: 'Completadas', value: completados, cls: 'green', sub: 'finalizadas' },
+    { label: 'Prioridad alta', value: altaPriority, cls: altaPriority > 3 ? 'red' : 'amber', sub: 'pendientes críticas' },
+  ];
+
+  document.getElementById('kpiRow').innerHTML = kpis.map((k, i) => `
+    <div class="kpi-card" style="animation-delay:${i * 0.06}s">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-value ${k.cls}">${k.value}</div>
+      <div class="kpi-sub">${k.sub}</div>
+    </div>`).join('');
+}
+
+// ── Kanban board ─────────────────────────────────────────────
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = COLUMNS.map((col, ci) => {
+    const cards = DATA.tasks.filter(t => t.column === col);
+    return `
+      <div class="column" data-col="${col}" style="animation-delay:${ci * 0.07}s">
+        <div class="col-header">
+          <div class="col-title">${col}</div>
+          <div class="col-count">${cards.length}</div>
+        </div>
+        ${cards.map((t, ti) => taskCard(t, ci * 0.07 + ti * 0.04)).join('')}
+      </div>`;
+  }).join('');
+}
+
+function taskCard(t, delay) {
+  const proj = DATA.projects.find(p => p.id === t.project_id);
+  const color = proj?.color || '#6B7A99';
+  const blockerHtml = t.blockers?.length
+    ? `<div class="task-blockers">Bloqueado: ${t.blockers[0]}</div>` : '';
+  return `
+    <div class="task-card" style="animation-delay:${delay}s" onclick="openTask('${t.id}')">
+      <div class="task-top">
+        <div class="task-title">${t.title}</div>
+        <div class="task-priority ${t.priority}">${t.priority}</div>
+      </div>
+      <div class="task-desc">${t.description.substring(0,80)}${t.description.length>80?'…':''}</div>
+      <div class="task-bottom">
+        <span class="task-project" style="background:${color}22;color:${color};border:1px solid ${color}33">${proj?.name || t.project_id}</span>
+        <span class="task-assignee">${t.assignee}</span>
+      </div>
+      ${blockerHtml}
+    </div>`;
+}
+
+// ── Projects ────────────────────────────────────────────────
+function renderProjects() {
+  document.getElementById('projectsRow').innerHTML = DATA.projects.map((p, i) => {
+    const statusCls = p.status === 'Activo' ? 'activo' : 'desarrollo';
+    const portHtml = p.port ? `<div class="proj-port">Puerto: <a href="http://localhost:${p.port}" target="_blank">localhost:${p.port}</a></div>` : '';
+    return `
+      <div class="project-card" style="--project-color:${p.color};animation-delay:${i*0.08}s">
+        <div class="proj-header">
+          <div class="proj-name">${p.name}</div>
+          <div class="proj-status ${statusCls}">${p.status}</div>
+        </div>
+        <div class="proj-desc">${p.description}</div>
+        <div class="proj-stack">${p.tech_stack.map(t=>`<span class="stack-tag">${t}</span>`).join('')}</div>
+        <div class="progress-row">
+          <span class="progress-label">Avance</span>
+          <div class="progress-bar"><div class="progress-fill" style="width:0%;background:linear-gradient(90deg,${p.color},${p.color}bb)" data-target="${p.progress}"></div></div>
+          <span class="progress-pct">${p.progress}%</span>
+        </div>
+        ${portHtml}
+      </div>`;
+  }).join('');
+
+  // Animate progress bars
+  setTimeout(() => {
+    document.querySelectorAll('.progress-fill').forEach(el => {
+      el.style.width = el.dataset.target + '%';
+    });
+  }, 100);
+}
+
+// ── Sessions ────────────────────────────────────────────────
+function renderSessions() {
+  const container = document.getElementById('sessionsContainer');
+  const sessions = [...DATA.sessions].reverse();
+  container.innerHTML = sessions.map((s, i) => `
+    <div class="session-item" style="animation-delay:${i*0.05}s">
+      <div class="session-header">
+        <div class="session-num">${s.number}</div>
+        <div class="session-title">${s.title}</div>
+        <div class="session-date">${s.date}</div>
+      </div>
+      <div class="session-sabios">
+        ${s.sabios.map(sb=>`<span class="sabio-tag">${sb}</span>`).join('')}
+      </div>
+      <div class="session-body">
+        <div>
+          <div class="session-block-title">Actividades realizadas</div>
+          <ul class="session-list">${s.activities_done.map(a=>`<li>${a}</li>`).join('')}</ul>
+        </div>
+        <div>
+          <div class="session-block-title">Decisiones tomadas</div>
+          <ul class="session-list">${s.decisions.map(d=>`<li>${d}</li>`).join('')}</ul>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ── Tab switch ──────────────────────────────────────────────
+function switchTab(name) {
+  document.querySelectorAll('.nav-tab').forEach((t, i) => {
+    const tabs = ['kanban', 'proyectos', 'sesiones'];
+    t.classList.toggle('active', tabs[i] === name);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p => {
+    p.classList.toggle('active', p.id === 'tab-' + name);
+  });
+  if (name === 'proyectos') {
+    setTimeout(() => {
+      document.querySelectorAll('.progress-fill').forEach(el => {
+        el.style.width = el.dataset.target + '%';
+      });
+    }, 50);
+  }
+}
+
+// ── Task detail (simple) ─────────────────────────────────────
+function openTask(id) {
+  const t = DATA.tasks.find(x => x.id === id);
+  if (!t) return;
+  const done = t.activities_done.map(a => `• ${a}`).join('\n');
+  const pending = t.activities_pending.map(a => `• ${a}`).join('\n');
+  const blockers = t.blockers.length ? '\n\nBloqueadores:\n' + t.blockers.map(b=>`• ${b}`).join('\n') : '';
+  alert(`[${t.id}] ${t.title}\n\nPrioridad: ${t.priority} | Asignado a: ${t.assignee}\nSesión creada: #${t.session_created} | Última actualización: #${t.session_updated}\n\nActividades realizadas:\n${done || '—'}\n\nActividades pendientes:\n${pending || '—'}${blockers}`);
+}
+
+load();
+</script>
+</body>
+</html>
